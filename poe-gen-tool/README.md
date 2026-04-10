@@ -11,10 +11,10 @@ Intel(R) Software Guard Extensions Data Center Attestation Primitives (Intel(R) 
 
 
 ## Usage
-Usage: poe_gen_tool extract --type <pm|pck_cert|quote>  <input_file> [-v] [--version]
-Example: poe_gen_tool extract --type pm platform_manifest.bin
-      Or: poe_gen_tool extract --type pck_cert pck_cert.pem
-      Or: poe_gen_tool extract --type quote quote.dat
+Usage: poe-gen-tool extract --type <pm|pck_cert|quote>  <input_file> [-v] [--version]
+Example: poe-gen-tool extract --type pm platform_manifest.bin
+      Or: poe-gen-tool extract --type pck_cert pck_cert.pem
+      Or: poe-gen-tool extract --type quote quote.dat
 
 Options:
  extract           - extract the piid (and prid) from the input file.
@@ -34,7 +34,9 @@ Options:
  -h, --help       - show command help
 
 Notes: 
-At the same time, you can only provide one and only one type for these three types: pm, pck_cert, quote.
+1. At the same time, you can only provide one and only one type for these three types: pm, pck_cert, quote.
+2. For more background information, you can refer to: 
+     https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/technical-documentation/platform-ownership-endorsements.html 
 
 
 

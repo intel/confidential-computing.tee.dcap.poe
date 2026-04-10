@@ -1,0 +1,4 @@
+DeliveryName	InstallName	FileCheckSum	FileFeature	FileOwner
+<deliverydir>/../../poe-gen-tool/build/bin/poe-gen-tool	<installdir>/poe-gen-tool	0	main	STP
+<deliverydir>/../../poe-gen-tool/README.md	<installdir>/README.md	0	main	STP
+<deliverydir>/../../License.txt	<installdir>/License.txt	0	main	STP

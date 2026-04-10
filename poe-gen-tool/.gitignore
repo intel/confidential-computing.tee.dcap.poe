@@ -1,4 +1,4 @@
 build
 third_party
-poe_gen_tool
+poe-gen-tool
 src/*.o

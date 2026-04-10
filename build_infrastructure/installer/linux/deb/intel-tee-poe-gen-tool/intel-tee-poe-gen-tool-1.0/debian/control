@@ -1,0 +1,15 @@
+Source: intel-tee-poe-gen-tool
+Section: misc
+Priority: optional
+Maintainer: Intel Confidential Computing Team <confidential.computing@intel.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Homepage: https://github.com/intel/confidential-computing.tee.dcap.poe
+
+Package: intel-tee-poe-gen-tool
+Provides: poe-gen-tool
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Intel(R) Platform Ownership Endorsement(POE) Tool 
+ This tool is used to collect the platform instance ID, then to generate the platform ownership endorsement
+

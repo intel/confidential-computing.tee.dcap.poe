@@ -1,0 +1,106 @@
+# =============================================================================
+# Build artifacts
+# =============================================================================
+output/
+
+# =============================================================================
+# Installer intermediates and packages
+# =============================================================================
+build_infrastructure/installer/linux/common/*/gen_source.py
+!build_infrastructure/installer/linux/common/gen_source/gen_source.py
+
+build_infrastructure/installer/linux/deb/*/*.deb
+build_infrastructure/installer/linux/deb/*/*.buildinfo
+build_infrastructure/installer/linux/deb/*/*.changes
+build_infrastructure/installer/linux/deb/*/*.tar.xz
+build_infrastructure/installer/linux/deb/*/*.dsc
+build_infrastructure/installer/linux/deb/*/*.orig.tar.gz
+build_infrastructure/installer/linux/deb/intel-tee-poe-gen-tool/intel-tee-poe-gen-tool-*
+!build_infrastructure/installer/linux/deb/intel-tee-poe-gen-tool/intel-tee-poe-gen-tool-1.0
+
+build_infrastructure/installer/linux/rpm/*/*.rpm
+build_infrastructure/installer/linux/rpm/intel-tee-poe-gen-tool/intel-tee-poe-gen-tool-*/
+
+# Standalone release tarballs
+intel_tee_poe-gen-tool_v*/
+intel_tee_poe-gen-tool_v*.tar.gz
+
+# =============================================================================
+# Prerequisites
+# =============================================================================
+*.d
+
+# =============================================================================
+# Compiled Object files
+# =============================================================================
+*.o
+
+# =============================================================================
+# Precompiled Headers
+# =============================================================================
+*.gch
+*.pch
+
+# =============================================================================
+# Compiled Dynamic libraries
+# =============================================================================
+*.so
+*.so.*
+*.dylib
+
+# =============================================================================
+# Compiled Static libraries
+# =============================================================================
+*.a
+
+# =============================================================================
+# Debug information files
+# =============================================================================
+*.dwo
+
+# =============================================================================
+# CMake generated files
+# =============================================================================
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+install_manifest.txt
+CMakeLists.txt.user
+CMakeUserPresets.json
+CTestTestfile.cmake
+Testing/
+_deps/
+
+# =============================================================================
+# IDEs and editors
+# =============================================================================
+.idea/
+.vscode/
+.cache/
+
+# =============================================================================
+# Temporary files
+# =============================================================================
+*.tmp
+*.log
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# Merge / diff tools
+# =============================================================================
+*.diff
+*.orig
+*.BASE.*
+*.LOCAL.*
+*.REMOTE.*
+*.BACKUP.*
+*.bak
+
+# =============================================================================
+# OS generated files
+# =============================================================================
+.DS_Store
+Thumbs.db

@@ -19,8 +19,12 @@ using namespace intel::tools::poe;
 constexpr std::string_view VER_FILE_DESCRIPTION_STR =
     "Intel(R): this tool is used to collect the platform instance ID, then to generate the "
     "platform ownership endorsement";
-constexpr std::string_view VER_PRODUCTNAME_STR = "poe_gen_tool";
-constexpr std::string_view STRPRODUCTVER = "1.0.100.0";
+constexpr std::string_view VER_PRODUCTNAME_STR = "poe-gen-tool";
+
+#ifndef POE_VERSION
+#define POE_VERSION "9.9.9.9-dev"
+#endif
+constexpr std::string_view STRPRODUCTVER = POE_VERSION;
 
 struct ProgramOptions {
     inline static std::string fileName = "";
@@ -36,12 +40,12 @@ void show_usage() {
               << " extract --type <pm|pck_cert|quote>  <input_file> [-v] [--version]\n";
     std::cout << "Example: " << VER_PRODUCTNAME_STR
               << " extract --type pm platform_manifest.bin\n ";
-    std::cout << "     Or: " << VER_PRODUCTNAME_STR << " extract --type pck_cert pck_cert.pem\n ";
-    std::cout << "     Or: " << VER_PRODUCTNAME_STR << " extract --type quote  quote.dat\n";
+    std::cout << "    Or: " << VER_PRODUCTNAME_STR << " extract --type pck_cert pck_cert.pem\n ";
+    std::cout << "    Or: " << VER_PRODUCTNAME_STR << " extract --type quote  quote.dat\n";
     std::cout << "\nOptions:\n";
     std::cout
-        << " extract           - extract the piid (and prid) from the input file.\n"
-           " --type, -t <pm|pck_cert|quote>        - support three types:\n "
+        << " extract                           - extract the piid (and prid) from the input file.\n"
+           " --type, -t <pm|pck_cert|quote>    - support three types:\n "
            "------------------------------------------------------------------------------------\n"
            "|   pm   | the input file includes the platform manifest, and the platform manifest |\n"
            "|        | should be in hex string format                                           |\n"
@@ -82,7 +86,7 @@ int parse_arg(int argc, const char* argv[]) {
         return -1;
     }
     try {
-        cxxopts::Options options("poe_gen_tool", "Platform Ownership Endorsement Generation Tool");
+        cxxopts::Options options("poe-gen-tool", "Platform Ownership Endorsement Generation Tool");
 
         // sub-command：current we only support "extract"
         options.custom_help("[OPTIONS] <input_file>");
@@ -162,7 +166,7 @@ int parse_arg(int argc, const char* argv[]) {
 // return value:
 // -1: when some error happens
 //  0: success
-//  1: ./gen_poe_tool -h or ./gen_poe_tool --version
+//  1: ./poe-gen-tool -h or ./poe-gen-tool --version
 int main(int argc, const char* argv[]) {
     // parse the command options
     int ret = parse_arg(argc, argv);

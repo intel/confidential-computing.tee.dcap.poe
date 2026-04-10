@@ -102,7 +102,7 @@ App_Link_Flags +=  -lcrypto
 
 App_Cpp_Objects := $(App_Cpp_Files:.cpp=.o)
 
-App_Name := poe_gen_tool
+App_Name := poe-gen-tool
 
 
 .PHONY: all 

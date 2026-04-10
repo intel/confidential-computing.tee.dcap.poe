@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 # Define project name and languages
-project(poe_gen_tool LANGUAGES CXX)
+project(poe-gen-tool LANGUAGES CXX)
 
  # Find OpenSSL for cryptographic functionality
  find_package(OpenSSL REQUIRED)
@@ -104,7 +104,13 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
+# Inject version from build system (defaults to dev build if not specified)
+if(NOT DEFINED POE_VERSION)
+    set(POE_VERSION "9.9.9.9-dev")
+endif()
+target_compile_definitions(${PROJECT_NAME} PRIVATE POE_VERSION="${POE_VERSION}")
+
 # Optional: Print build information for debugging
-message(STATUS "Building ${PROJECT_NAME} with C++${CMAKE_CXX_STANDARD}")
+message(STATUS "Building ${PROJECT_NAME} v${POE_VERSION} with C++${CMAKE_CXX_STANDARD}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
