@@ -11,13 +11,21 @@ Intel(R) Software Guard Extensions Data Center Attestation Primitives (Intel(R) 
 
 
 ## Usage
-Usage: poe-gen-tool extract --type <pm|pck_cert|quote>  <input_file> [-v] [--version]
+Usage: poe-gen-tool [--verbose] <command> [<args>]
 Example: poe-gen-tool extract --type pm platform_manifest.bin
       Or: poe-gen-tool extract --type pck_cert pck_cert.pem
       Or: poe-gen-tool extract --type quote quote.dat
+      Or: poe-gen-tool version
 
-Options:
+Global options:
+ -v, --verbose    - explain what is being done
+ -h, --help       - show command help
+
+Commands:
  extract           - extract the piid (and prid) from the input file.
+ version           - output version information and exit
+
+extract options:
  --type, -t <pm|pck_cert|quote>        - support three types:
  ------------------------------------------------------------------------------------
 |   pm   | the input file includes the platform manifest, and the platform manifest |
@@ -28,10 +36,7 @@ Options:
 -------------------------------------------------------------------------------------
 |  quote | the input file includes the quote                                        |
 -------------------------------------------------------------------------------------
- input_file       - the file that includes platform manifest, or pck cert, or quote 
- -v, --verbose    - explain what is being done 
- --version        - output version information and exit 
- -h, --help       - show command help
+ input_file       - the file that includes platform manifest, or pck cert, or quote
 
 Notes: 
 1. At the same time, you can only provide one and only one type for these three types: pm, pck_cert, quote.

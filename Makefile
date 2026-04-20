@@ -12,8 +12,13 @@ else
     CMAKE_BUILD_TYPE ?= Release
 endif
 
-POE_VERSION ?= "9.9.9.9" 
-POE_GEN_TOOL_VERSION ?= $(POE_VERSION)
+# Single source of truth for the default version used by both CMake and
+# packaging scripts. When POE_VERSION is provided by the caller (e.g. CI),
+# that value is used instead.
+POE_DEFAULT_VERSION := 9.9.9.9-dev
+POE_GEN_TOOL_VERSION ?= $(if $(POE_VERSION),$(POE_VERSION),$(POE_DEFAULT_VERSION))
+
+CMAKE_POE_VERSION_FLAG = -DPOE_VERSION=$(POE_GEN_TOOL_VERSION)
 
 .PHONY: build poe-gen-tool
 build: poe-gen-tool
@@ -21,7 +26,7 @@ build: poe-gen-tool
 poe-gen-tool:
 	@cmake -S poe-gen-tool -B poe-gen-tool/build -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
 		-DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) \
-		-DPOE_VERSION=$(POE_GEN_TOOL_VERSION) || { echo "CMake configure failed!"; exit 1; }
+		$(CMAKE_POE_VERSION_FLAG) || { echo "CMake configure failed!"; exit 1; }
 	@cmake --build poe-gen-tool/build || { echo "Build failed!"; exit 1; }
 
 

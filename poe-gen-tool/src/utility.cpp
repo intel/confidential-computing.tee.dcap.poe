@@ -427,9 +427,10 @@ std::optional<std::string> retrievePIIDAndPRIDsFromPM(std::string_view filename)
     std::string type = fileBuffer.substr(pos + TYPE_OFFSET_IN_PM * 2, TYPE_LENGTH * 2);
     std::optional<std::string> result = reverse_hex_string(version);
     if (result.has_value()) {
-        if (1 != std::stoi(result.value(), nullptr, 16)) {
+        const int versionVal = std::stoi(*result, nullptr, 16);
+        if (1 != versionVal) {
             std::cerr << "ERROR: the platform manifest's version is not correct" << std::endl;
-            std::cerr << "the actual version is:" << std::stoi(result.value(), nullptr, 16)
+            std::cerr << "the actual version is: " << versionVal
                       << "; the expected version is 1." << std::endl;
             return std::nullopt;
         }
