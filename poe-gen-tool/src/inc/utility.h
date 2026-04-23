@@ -14,9 +14,7 @@
 #include <string>
 #include <string_view>
 
-namespace intel {
-namespace tools {
-namespace poe {
+namespace intel::tools::poe {
 
 [[nodiscard]] std::optional<std::string> retrievePIIDAndPRIDsFromPM(std::string_view filename);
 
@@ -24,6 +22,4 @@ namespace poe {
 
 [[nodiscard]] std::optional<std::string> retrievePIIDFromQuote(std::string_view filename);
 
-}  // namespace poe
-}  // namespace tools
-}  // namespace intel
+}  // namespace intel::tools::poe

@@ -24,28 +24,27 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>  //for std::exchange
 #include <vector>
-namespace intel {
-namespace tools {
-namespace poe {
+namespace intel::tools::poe {
 // const value in hex string encoding
-inline constexpr std::size_t PRID_NUMBER_LENGTH = 4;
-inline constexpr std::size_t PLATFORM_INFO_LENGTH = 476;
-inline constexpr std::size_t HEADER_LENGTH = 32;
-inline constexpr std::size_t PIID_LENGTH = 16;
-inline constexpr std::size_t PRID_LENGTH = 16;
-inline constexpr std::size_t VERSION_OFFSET_IN_PM = 18;
-inline constexpr std::size_t TYPE_OFFSET_IN_PM = 20;
-inline constexpr std::size_t VERSION_LENGTH = 2;
-inline constexpr std::size_t TYPE_LENGTH = 1;
-inline constexpr std::size_t MAX_PACKAGE_COUNT = 1024;
-inline constexpr std::size_t FIRST_PRID_OFFSET_IN_PM = 33;
-inline constexpr std::size_t PRID_OFFSET_IN_PM = 81;
+constexpr std::size_t PRID_NUMBER_LENGTH = 4;
+constexpr std::size_t PLATFORM_INFO_LENGTH = 476;
+constexpr std::size_t HEADER_LENGTH = 32;
+constexpr std::size_t PIID_LENGTH = 16;
+constexpr std::size_t PRID_LENGTH = 16;
+constexpr std::size_t VERSION_OFFSET_IN_PM = 18;
+constexpr std::size_t TYPE_OFFSET_IN_PM = 20;
+constexpr std::size_t VERSION_LENGTH = 2;
+constexpr std::size_t TYPE_LENGTH = 1;
+constexpr std::size_t MAX_PACKAGE_COUNT = 1024;
+constexpr std::size_t FIRST_PRID_OFFSET_IN_PM = 33;
+constexpr std::size_t PRID_OFFSET_IN_PM = 81;
 // const value in binary encoding
-inline constexpr std::size_t QE_VENDOR_ID_OFFSET = 12;
-inline constexpr std::size_t QE_VENDOR_ID_LENGTH = 16;
+constexpr std::size_t QE_VENDOR_ID_OFFSET = 12;
+constexpr std::size_t QE_VENDOR_ID_LENGTH = 16;
 
 constexpr size_t MAX_ALLOWED_FILE_SIZE = 20 * 1024 * 1024;  // 20 MB
 
@@ -95,24 +94,16 @@ size_t findIgnoreCase(std::string_view str, std::string_view sub) {
 }
 
 // Deleters
-auto bio_deleter = [](BIO* ptr) {
-    if (ptr) BIO_free(ptr);
-};
-auto x509_deleter = [](X509* ptr) {
-    if (ptr) X509_free(ptr);
-};
-auto asn1_obj_deleter = [](ASN1_OBJECT* ptr) {
-    if (ptr) ASN1_OBJECT_free(ptr);
-};
-auto asn1_type_stack_deleter = [](STACK_OF(ASN1_TYPE) * ptr) {
-    if (ptr) sk_ASN1_TYPE_pop_free(ptr, ASN1_TYPE_free);
-};
+struct BIODeleter      { void operator()(BIO*              p) const noexcept { BIO_free(p); } };
+struct X509Deleter     { void operator()(X509*             p) const noexcept { X509_free(p); } };
+struct ASN1ObjDeleter  { void operator()(ASN1_OBJECT*      p) const noexcept { ASN1_OBJECT_free(p); } };
+struct ASN1StackDeleter { void operator()(STACK_OF(ASN1_TYPE)* p) const noexcept { sk_ASN1_TYPE_pop_free(p, ASN1_TYPE_free); } };
 
 // Smart pointer aliases
-using BIOPtr = std::unique_ptr<BIO, decltype(bio_deleter)>;
-using X509Ptr = std::unique_ptr<X509, decltype(x509_deleter)>;
-using ASN1ObjectPtr = std::unique_ptr<ASN1_OBJECT, decltype(asn1_obj_deleter)>;
-using ASN1TypeStackPtr = std::unique_ptr<STACK_OF(ASN1_TYPE), decltype(asn1_type_stack_deleter)>;
+using BIOPtr          = std::unique_ptr<BIO,              BIODeleter>;
+using X509Ptr         = std::unique_ptr<X509,             X509Deleter>;
+using ASN1ObjectPtr   = std::unique_ptr<ASN1_OBJECT,      ASN1ObjDeleter>;
+using ASN1TypeStackPtr = std::unique_ptr<STACK_OF(ASN1_TYPE), ASN1StackDeleter>;
 
 // Helper to convert ASN1_OCTET_STRING to hex string
 std::string octet_string_to_hex(const ASN1_OCTET_STRING& oct) {
@@ -221,9 +212,8 @@ std::optional<std::string> getExtensionByOIDString(std::string_view pckCert,
 
     int loc = -1;
     X509_EXTENSION* ext = nullptr;
-    while ((loc = X509_get_ext_by_OBJ(cert.get(), target_obj.get(), loc)) >= 0) {
+    if ((loc = X509_get_ext_by_OBJ(cert.get(), target_obj.get(), -1)) >= 0) {
         ext = X509_get_ext(cert.get(), loc);
-        break;
     }
 
     if (!ext) {
@@ -262,7 +252,7 @@ std::optional<std::string> getExtensionByOIDString(std::string_view pckCert,
         const unsigned char* q = field->value.sequence->data;
         long seq_len = field->value.sequence->length;
 
-        ASN1TypeStackPtr sub_seq(d2i_ASN1_SEQUENCE_ANY(NULL, &q, seq_len));
+        ASN1TypeStackPtr sub_seq(d2i_ASN1_SEQUENCE_ANY(nullptr, &q, seq_len));
         if (!sub_seq) {
             std::cerr << "ERROR: Failed to decode SGX Extensions SEQUENCE.\n";
             return std::nullopt;
@@ -349,8 +339,8 @@ std::optional<std::string> retrievePIIDFromCert(std::string_view pemFile) {
         std::cerr << "ERROR: Could NOT open file " << pemFile << std::endl;
         return std::nullopt;
     }
-    std::string certData =
-        std::string((std::istreambuf_iterator<char>(*file_ptr)), std::istreambuf_iterator<char>());
+    std::string certData{std::istreambuf_iterator<char>(*file_ptr),
+                         std::istreambuf_iterator<char>{}};
 
     std::string pckData = "";
     size_t pos_begin = findIgnoreCase(certData, begCert);
@@ -396,6 +386,7 @@ std::optional<std::string> retrievePIIDFromQuote(std::string_view quoteFile) {
 }
 
 std::optional<std::string> retrievePIIDAndPRIDsFromPM(std::string_view filename) {
+  try {
     auto file_ptr = open_file(filename);
     if (!file_ptr) {
         std::cerr << "ERROR: Could NOT open file " << filename << std::endl;
@@ -403,10 +394,13 @@ std::optional<std::string> retrievePIIDAndPRIDsFromPM(std::string_view filename)
     }
 
     file_ptr->seekg(0, std::ios::end);
-    std::streamsize size = file_ptr->tellg();
+    const std::streamsize size = file_ptr->tellg();
+    if (size < 0) {
+        std::cerr << "ERROR: Failed to determine file size :" << filename << std::endl;
+        return std::nullopt;
+    }
     file_ptr->seekg(0, std::ios::beg);
-
-    std::string fileBuffer(size, '\0');
+    std::string fileBuffer(static_cast<size_t>(size), '\0');
     if (!file_ptr->read(fileBuffer.data(), size)) {
         std::cerr << "ERROR: Failed to read file :" << filename << std::endl;
         return std::nullopt;
@@ -460,9 +454,10 @@ std::optional<std::string> retrievePIIDAndPRIDsFromPM(std::string_view filename)
     type = fileBuffer.substr(pos + TYPE_OFFSET_IN_PM * 2, TYPE_LENGTH * 2);
     result = reverse_hex_string(version);
     if (result.has_value()) {
-        if (1 != std::stoi(result.value(), nullptr, 16)) {
+        const int piVersionVal = std::stoi(*result, nullptr, 16);
+        if (1 != piVersionVal) {
             std::cerr << "ERROR: the platform Info's version is not correct" << std::endl;
-            std::cerr << "The actual version is:" << std::stoi(result.value(), nullptr, 16)
+            std::cerr << "The actual version is:" << piVersionVal
                       << "; the expected version is 1." << std::endl;
             return std::nullopt;
         }
@@ -527,8 +522,13 @@ std::optional<std::string> retrievePIIDAndPRIDsFromPM(std::string_view filename)
         return std::nullopt;
     }
     return oss.str();
+  } catch (const std::invalid_argument& e) {
+      std::cerr << "ERROR: Failed to parse numeric value: " << e.what() << "\n";
+      return std::nullopt;
+  } catch (const std::out_of_range& e) {
+      std::cerr << "ERROR: Numeric value out of range: " << e.what() << "\n";
+      return std::nullopt;
+  }
 }
 
-}  // namespace poe
-}  // namespace tools
-}  // namespace intel
+}  // namespace intel::tools::poe

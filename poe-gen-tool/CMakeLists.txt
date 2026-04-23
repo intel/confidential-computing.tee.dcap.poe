@@ -4,8 +4,13 @@ cmake_minimum_required(VERSION 3.13)
 # Define project name and languages
 project(poe-gen-tool LANGUAGES CXX)
 
- # Find OpenSSL for cryptographic functionality
- find_package(OpenSSL REQUIRED)
+option(BUILD_TESTS "Build poe-gen-tool unit tests" ON)
+
+# Find OpenSSL for cryptographic functionality
+# Request static libraries so the binary is self-contained and does not depend
+# on the target system's OpenSSL shared library version.
+set(OPENSSL_USE_STATIC_LIBS TRUE)
+find_package(OpenSSL REQUIRED)
 
 # Set C++ standard to C++20 (required for modern features)
 set(CMAKE_CXX_STANDARD 20)
@@ -16,10 +21,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)  # Disable compiler-specific extensions
 set(COMMON_FLAGS
     -ffunction-sections
     -fdata-sections
+    -fPIE
     -Wall -Wextra -Winit-self -Wpointer-arith -Wreturn-type
-    -Waddress -Wsequence-point -Wformat-security
+    -Waddress -Wsequence-point -Wformat -Wformat-security -Werror=format-security
     -Wmissing-include-dirs -Wfloat-equal -Wundef -Wshadow
     -Wcast-align -Wconversion -Wredundant-decls
+    -fno-delete-null-pointer-checks
+    -fno-strict-overflow
 )
 
 # Enable stack protection (strong if compiler supports it)
@@ -48,9 +56,8 @@ FetchContent_Declare(
     cxxopts
     GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
     # Use this commit in 'master' for latest fixes (e.g., -t=pm bug fix)
-    GIT_TAG        11f26227ef8e951bdad48aeaa6537f1c5d8e9e0a  
+    GIT_TAG        11f26227ef8e951bdad48aeaa6537f1c5d8e9e0a
     SOURCE_DIR     ${CMAKE_BINARY_DIR}/_deps/cxxopts-src
-    #BINARY_DIR     ${CMAKE_BINARY_DIR}/_deps/cxxopts-build
 )
 
 # Check if cxxopts has already been downloaded and populated
@@ -72,34 +79,38 @@ endif()
 
 # Define linker flags for security and optimization
 set(LINK_FLAGS
+    -pie
     -Wl,-z,relro,-z,now,-z,noexecstack
 )
 
-# Define source files for the executable
-set(APP_CPP_FILES
-    src/POETool.cpp
-    src/utility.cpp
+add_library(PoeGenToolUtility STATIC src/utility.cpp)
+
+target_include_directories(PoeGenToolUtility PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/inc
 )
 
-# Create the main executable target
-add_executable(${PROJECT_NAME} ${APP_CPP_FILES})
+target_compile_options(PoeGenToolUtility PRIVATE ${COMMON_FLAGS})
 
-# Add private include directories for the executable
-target_include_directories(${PROJECT_NAME} PRIVATE
-    "src/inc"
-    # Note: cxxopts is already provided via INTERFACE library, no need to add manually
+target_link_libraries(PoeGenToolUtility PUBLIC
+    OpenSSL::Crypto
 )
 
-# Apply common compiler flags to the executable
+set_target_properties(PoeGenToolUtility PROPERTIES
+    CXX_STANDARD          20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS        OFF
+)
+
+add_executable(${PROJECT_NAME} src/POETool.cpp)
+
 target_compile_options(${PROJECT_NAME} PRIVATE ${COMMON_FLAGS})
 
-# Apply linker flags and link required libraries
 target_link_options(${PROJECT_NAME} PRIVATE ${LINK_FLAGS})
-target_link_libraries(${PROJECT_NAME} PRIVATE 
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    PoeGenToolUtility
     cxxopts
-    OpenSSL::Crypto)  # Link OpenSSL crypto via CMake package, cxxopts
+)
 
-# Optional: Set output directory for the executable
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
@@ -110,7 +121,6 @@ if(NOT DEFINED POE_VERSION)
 endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE POE_VERSION="${POE_VERSION}")
 
-# Optional: Print build information for debugging
 message(STATUS "Building ${PROJECT_NAME} v${POE_VERSION} with C++${CMAKE_CXX_STANDARD}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

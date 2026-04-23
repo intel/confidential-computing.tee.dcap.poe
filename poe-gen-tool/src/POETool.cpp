@@ -11,6 +11,7 @@
 #include <cxxopts.hpp>
 #include <iostream>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "utility.h"
@@ -27,37 +28,37 @@ constexpr std::string_view VER_PRODUCTNAME_STR = "poe-gen-tool";
 #endif
 constexpr std::string_view STRPRODUCTVER = POE_VERSION;
 
-struct ProgramOptions {
-    enum class Command {
-        kNone,
-        kExtract,
-        kVersion,
-    };
+enum class Command {
+    kNone,
+    kExtract,
+    kVersion,
+};
 
-    enum class InputType {
-        kNone,
-        kPM,
-        kPckCert,
-        kQuote,
-    };
+enum class InputType {
+    kNone,
+    kPM,
+    kPckCert,
+    kQuote,
+};
 
-    inline static std::string fileName = "";
-    inline static Command command = Command::kNone;
-    inline static InputType inputType = InputType::kNone;
-    inline static bool verbFlag = false;
+struct ParsedOptions {
+    InputType inputType = InputType::kNone;
+    Command command = Command::kNone;
+    std::string fileName;
+    bool verbFlag = false;
 };
 
 // Allows cxxopts to parse the --type parameter as enum
-std::istream& operator>>(std::istream& in, ProgramOptions::InputType& type) {
+std::istream& operator>>(std::istream& in, InputType& type) {
     std::string token;
     in >> token;
 
     if (token == "pm") {
-        type = ProgramOptions::InputType::kPM;
+        type = InputType::kPM;
     } else if (token == "pck_cert") {
-        type = ProgramOptions::InputType::kPckCert;
+        type = InputType::kPckCert;
     } else if (token == "quote") {
-        type = ProgramOptions::InputType::kQuote;
+        type = InputType::kQuote;
     } else {
         in.setstate(std::ios::failbit);
     }
@@ -66,14 +67,14 @@ std::istream& operator>>(std::istream& in, ProgramOptions::InputType& type) {
 }
 
 // Allows cxxopts to parse the <command> param as enum
-std::istream& operator>>(std::istream& in, ProgramOptions::Command& command) {
+std::istream& operator>>(std::istream& in, Command& command) {
     std::string token;
     in >> token;
 
     if (token == "extract") {
-        command = ProgramOptions::Command::kExtract;
+        command = Command::kExtract;
     } else if (token == "version") {
-        command = ProgramOptions::Command::kVersion;
+        command = Command::kVersion;
     } else {
         in.setstate(std::ios::failbit);
     }
@@ -82,8 +83,6 @@ std::istream& operator>>(std::istream& in, ProgramOptions::Command& command) {
 }
 
 namespace {
-
-// Global CLI parser
 cxxopts::Options create_root_options() {
     cxxopts::Options options(std::string(VER_PRODUCTNAME_STR),
                              "Platform Ownership Endorsement Generation Tool");
@@ -93,7 +92,7 @@ cxxopts::Options create_root_options() {
         ("v,verbose", "Show what is being done")
         ("h,help", "Show command help")
         ("command", "Subcommand to run: extract | version",
-         cxxopts::value<ProgramOptions::Command>());
+         cxxopts::value<Command>());
 
     options.parse_positional({"command"});
     options.positional_help("");  // suppress "positional parameters" suffix in help
@@ -115,7 +114,7 @@ cxxopts::Options create_extract_options() {
          "  pm       : for platform manifest (Base16 format)\n"
          "  pck_cert : for PCK certificate (PEM format)\n"
          "  quote    : for quote",
-         cxxopts::value<ProgramOptions::InputType>())
+         cxxopts::value<InputType>())
         ("input_file", "Input file path", cxxopts::value<std::string>());
 
     options.parse_positional({"input_file"});
@@ -156,12 +155,8 @@ void show_extract_usage(const cxxopts::Options& options) {
 
 }  // namespace
 
-int parse_arg(int argc, const char* argv[]) {
-    ProgramOptions::fileName.clear();
-    ProgramOptions::command = ProgramOptions::Command::kNone;
-    ProgramOptions::inputType = ProgramOptions::InputType::kNone;
-    ProgramOptions::verbFlag = false;
-
+// Returns ParsedOptions on success, or the exit code on error/early-exit.
+std::variant<ParsedOptions, int> parse_arg(int argc, const char* argv[]) {
     auto rootOptions = create_root_options();
 
     if (argc == 1) {
@@ -175,18 +170,16 @@ int parse_arg(int argc, const char* argv[]) {
         // rootResult.unmatched() for subcommand-specific parsing in pass 2.
         rootResult = rootOptions.parse(argc, argv);
     } catch (const cxxopts::exceptions::exception& e) {
-        std::cerr << "Error parsing options: " << e.what() << std::endl;
+        std::cerr << "Error parsing options: " << e.what() << '\n';
         show_root_usage(rootOptions);
         return 2;
     }
 
-    if (rootResult.count("verbose")) {
-        ProgramOptions::verbFlag = true;
-    }
+    ParsedOptions opts;
+    opts.verbFlag = rootResult.count("verbose") > 0;
 
     if (rootResult.count("help") && !rootResult.count("command")) {
         show_root_usage(rootOptions);
-        ProgramOptions::command = ProgramOptions::Command::kNone;
         return 0;
     }
 
@@ -196,13 +189,12 @@ int parse_arg(int argc, const char* argv[]) {
         return 2;
     }
 
-    ProgramOptions::command = rootResult["command"].as<ProgramOptions::Command>();
+    opts.command = rootResult["command"].as<Command>();
 
-    switch (ProgramOptions::command) {
-        case ProgramOptions::Command::kVersion:
+    switch (opts.command) {
+        case Command::kVersion:
             if (rootResult.count("help")) {
                 show_root_usage(rootOptions);
-                ProgramOptions::command = ProgramOptions::Command::kNone;
                 return 0;
             }
             if (!rootResult.unmatched().empty()) {
@@ -210,16 +202,15 @@ int parse_arg(int argc, const char* argv[]) {
                 show_root_usage(rootOptions);
                 return 2;
             }
-            return 0;
+            return opts;
 
-        case ProgramOptions::Command::kExtract: {
+        case Command::kExtract: {
             auto extractOptions = create_extract_options();
 
             // Short-circuit: show extract help before any pass-2 parsing so that
             // help is always shown cleanly, even when other args are invalid.
             if (rootResult.count("help")) {
                 show_extract_usage(extractOptions);
-                ProgramOptions::command = ProgramOptions::Command::kNone;
                 return 0;
             }
 
@@ -248,7 +239,7 @@ int parse_arg(int argc, const char* argv[]) {
                     return 2;
                 }
 
-                ProgramOptions::inputType = extractResult["type"].as<ProgramOptions::InputType>();
+                opts.inputType = extractResult["type"].as<InputType>();
 
                 if (!extractResult.count("input_file")) {
                     std::cerr << "Error: Missing input file\n";
@@ -256,13 +247,13 @@ int parse_arg(int argc, const char* argv[]) {
                     return 2;
                 }
 
-                ProgramOptions::fileName = extractResult["input_file"].as<std::string>();
+                opts.fileName = extractResult["input_file"].as<std::string>();
             } catch (const cxxopts::exceptions::exception& e) {
-                std::cerr << "Error parsing options: " << e.what() << std::endl;
+                std::cerr << "Error parsing options: " << e.what() << '\n';
                 show_extract_usage(extractOptions);
                 return 2;
             }
-            return 0;
+            return opts;
         }
 
         default:
@@ -277,51 +268,48 @@ int main(int argc, const char* argv[]) {
         int ret = 1;  // 1 = operational/runtime failure; 0 = success; 2 = usage error
 
         // parse the command options
-        int parseStatus = parse_arg(argc, argv);
-        if (parseStatus != 0) {
-            return parseStatus;
+        auto parseResult = parse_arg(argc, argv);
+        if (auto* exitCode = std::get_if<int>(&parseResult)) {
+            return *exitCode;
         }
+        const auto& opts = std::get<ParsedOptions>(parseResult);
 
-        if (ProgramOptions::command == ProgramOptions::Command::kNone) {
+        if (opts.command == Command::kVersion) {
+            std::cout << STRPRODUCTVER << '\n';
             return 0;
         }
 
-        if (ProgramOptions::command == ProgramOptions::Command::kVersion) {
-            std::cout << STRPRODUCTVER << std::endl;
-            return 0;
-        }
-
-        if (ProgramOptions::command != ProgramOptions::Command::kExtract) {
+        if (opts.command != Command::kExtract) {
             std::cerr << "Error: Unsupported command. Supported commands: extract, version.\n";
             return 2;
         }
 
-        if (ProgramOptions::verbFlag) {
+        if (opts.verbFlag) {
             std::cout << "\n" << VER_FILE_DESCRIPTION_STR << ". Version " << STRPRODUCTVER << "\n\n";
             std::cout << "[INFO] Parameters:\n";
-            switch (ProgramOptions::inputType) {
-                case ProgramOptions::InputType::kPM:
-                    std::cout << "  platform manifest file:   " << ProgramOptions::fileName << "\n\n";
+            switch (opts.inputType) {
+                case InputType::kPM:
+                    std::cout << "  platform manifest file:   " << opts.fileName << "\n\n";
                     break;
-                case ProgramOptions::InputType::kPckCert:
-                    std::cout << "  PCK Certificate:          " << ProgramOptions::fileName << "\n\n";
+                case InputType::kPckCert:
+                    std::cout << "  PCK Certificate:          " << opts.fileName << "\n\n";
                     break;
-                case ProgramOptions::InputType::kQuote:
-                    std::cout << "  quote file:               " << ProgramOptions::fileName << "\n\n";
+                case InputType::kQuote:
+                    std::cout << "  quote file:               " << opts.fileName << "\n\n";
                     break;
                 default:
                     break;
             }
         }
 
-        switch (ProgramOptions::inputType) {
-            case ProgramOptions::InputType::kPM: {
+        switch (opts.inputType) {
+            case InputType::kPM: {
                 std::optional<std::string> piidAndPridsStr =
-                    retrievePIIDAndPRIDsFromPM(ProgramOptions::fileName);
-                if (piidAndPridsStr.has_value()) {
-                    std::cout << piidAndPridsStr.value() << std::endl;
+                    retrievePIIDAndPRIDsFromPM(opts.fileName);
+                if (piidAndPridsStr) {
+                    std::cout << *piidAndPridsStr << '\n';
                     ret = 0;
-                    if (ProgramOptions::verbFlag) {
+                    if (opts.verbFlag) {
                         std::cout << "[OK] Retrieved PIID and PRIDs from platform manifest successfully.\n";
                     }
                 } else {
@@ -329,12 +317,12 @@ int main(int argc, const char* argv[]) {
                 }
                 break;
             }
-            case ProgramOptions::InputType::kPckCert: {
-                std::optional<std::string> piidStr = retrievePIIDFromCert(ProgramOptions::fileName);
-                if (piidStr.has_value()) {
-                    std::cout << piidStr.value() << std::endl;
+            case InputType::kPckCert: {
+                std::optional<std::string> piidStr = retrievePIIDFromCert(opts.fileName);
+                if (piidStr) {
+                    std::cout << *piidStr << '\n';
                     ret = 0;
-                    if (ProgramOptions::verbFlag) {
+                    if (opts.verbFlag) {
                         std::cout << "[OK] Retrieved the PIID from PCK certificate successfully.\n";
                     }
                 } else {
@@ -342,12 +330,12 @@ int main(int argc, const char* argv[]) {
                 }
                 break;
             }
-            case ProgramOptions::InputType::kQuote: {
-                std::optional<std::string> piidStr = retrievePIIDFromQuote(ProgramOptions::fileName);
-                if (piidStr.has_value()) {
-                    std::cout << piidStr.value() << std::endl;
+            case InputType::kQuote: {
+                std::optional<std::string> piidStr = retrievePIIDFromQuote(opts.fileName);
+                if (piidStr) {
+                    std::cout << *piidStr << '\n';
                     ret = 0;
-                    if (ProgramOptions::verbFlag) {
+                    if (opts.verbFlag) {
                         std::cout << "[OK] Retrieved the PIID from Quote successfully.\n";
                     }
                 } else {
@@ -361,10 +349,10 @@ int main(int argc, const char* argv[]) {
         }
         return ret;
     } catch (const std::exception& e) {
-        std::cerr << "[ERROR]: Unexpected exception: " << e.what() << std::endl;
+        std::cerr << "[ERROR]: Unexpected exception: " << e.what() << '\n';
         return 1;
     } catch (...) {
-        std::cerr << "[ERROR]: Unknown unexpected exception." << std::endl;
+        std::cerr << "[ERROR]: Unknown unexpected exception.\n";
         return 1;
     }
 }
