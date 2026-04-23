@@ -26,8 +26,15 @@ build: poe-gen-tool
 poe-gen-tool:
 	@cmake -S poe-gen-tool -B poe-gen-tool/build -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
 		-DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) \
-		$(CMAKE_POE_VERSION_FLAG) || { echo "CMake configure failed!"; exit 1; }
+		$(CMAKE_POE_VERSION_FLAG) \
+		-DBUILD_TESTS=ON || { echo "CMake configure failed!"; exit 1; }
 	@cmake --build poe-gen-tool/build || { echo "Build failed!"; exit 1; }
+
+.PHONY: test test-poe-gen-tool
+test: test-poe-gen-tool
+
+test-poe-gen-tool: poe-gen-tool
+	@cd poe-gen-tool/build && ctest --output-on-failure || { echo "Tests failed!"; exit 1; }
 
 
 .PHONY: deb
