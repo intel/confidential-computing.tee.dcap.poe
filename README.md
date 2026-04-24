@@ -2,8 +2,7 @@
 
 ## Introduction
 
-<!-- PLACEHOLDER - replace with high-level overview od repository contents and purpose -->
-> :construction: TODO :construction:
+This repository contains tools for extracting Platform Instance IDs (PIID) and Processor Registration IDs (PRID) from platform manifests, PCK certificates, and quotes. These identifiers are used in the [Platform Ownership Endorsement](https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/technical-documentation/platform-ownership-endorsements.html) flow for Intel&reg; SGX and Intel&reg; TDX platforms.
 
 ## License
 
@@ -13,12 +12,10 @@ This project is licensed under the BSD license. See [License.txt](License.txt) f
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-## Instructions
+## Build
 
-<!-- PLACEHOLDER - replace with pointers to build/install instructions of components contained herein -->
-> :construction: TODO :construction:
+See [poe-gen-tool/BUILD.md](poe-gen-tool/BUILD.md) for build instructions.
 
-## Package downloads (Linux)
+## Usage
 
-<!-- PLACEHOLDER - replace with pre-packaged release download locations information (or remove this section) -->
-> :construction: TODO :construction:
+See [poe-gen-tool/README.md](poe-gen-tool/README.md) for usage details.

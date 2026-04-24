@@ -3,6 +3,18 @@ Intel(R) Software Guard Extensions Data Center Attestation Primitives (Intel(R) 
 
 
 ## Prerequisites
+- CMake 3.13 or later
+- C++20 compatible compiler (GCC 10+ or Clang 10+)
+- OpenSSL development headers (`libssl-dev` on Debian/Ubuntu, `openssl-devel` on RHEL/Fedora)
+
+The following packages must be installed on the build host before building:
+
+- **OpenSSL** (libssl-dev / openssl-devel) — used for X.509 certificate parsing.
+  - Ubuntu/Debian: `sudo apt-get install libssl-dev`
+  - RHEL/Fedora:   `sudo dnf install openssl-devel`
+
+All other dependencies (cxxopts, GoogleTest) are fetched automatically by CMake
+via FetchContent when not already present on the system.
 
 ## How to build this tool
 For Linux version:
