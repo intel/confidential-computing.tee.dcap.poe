@@ -1,2 +1,3 @@
 DeliveryName	InstallName	FileCheckSum	FileFeature	FileOwner
 <deliverydir>/linux/common/intel-tee-poe-gen-tool/installConfig	<installdir>/installConfig	0	main	STP
+<deliverydir>/linux/common/intel-tee-poe-gen-tool/Makefile	<installdir>/Makefile	0	main	STP

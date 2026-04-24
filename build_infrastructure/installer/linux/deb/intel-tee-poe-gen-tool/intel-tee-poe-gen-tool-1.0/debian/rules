@@ -9,3 +9,7 @@
 
 override_dh_strip:
 	dh_strip --no-automatic-dbgsym
+
+override_dh_fixperms:
+	dh_fixperms
+	find debian -name 'poe-gen-tool' -type f -exec chmod 0755 {} +

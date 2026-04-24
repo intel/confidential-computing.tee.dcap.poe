@@ -26,14 +26,14 @@ This tool is used to collect the platform instance ID, then to generate the plat
 %setup -qc
 
 %install
-make DESTDIR=%{?buildroot} install
-echo "%{_install_path}" > %{_specdir}/list-%{name}
-find %{?buildroot} | sort | \
-awk '$0 !~ last "/" {print last} {last=$0} END {print last}' | \
-sed -e "s#^%{?buildroot}##" | \
-grep -v "^%{_install_path}" >> %{_specdir}/list-%{name} || :
+make DESTDIR=%{buildroot} install
 
-%files -f %{_specdir}/list-%{name}
+# filelist
+find %{buildroot} -type f -o -type l | sed "s#^%{buildroot}##" > filelist
+# add directories you explicitly own (esp. /opt/intel/...)
+echo "%dir %{_install_path}" >> filelist
+
+%files -f filelist
 
 %define debug_package %{nil}
 
@@ -42,12 +42,18 @@ grep -v "^%{_install_path}" >> %{_specdir}/list-%{name} || :
 # Set up platform ownership endorsment tool                                         #
 ################################################################################
 
+# Verify the target binary exists before creating symlink
+if [ ! -f %{_install_path}/%{_tool_name} ]; then
+    echo "ERROR: %{_install_path}/%{_tool_name} not found." >&2
+    exit 6
+fi
+
 # Install the PLATFORM_OWNERSHIP_ENDORSEMENT_TOOL 
 ln -s -f %{_install_path}/%{_tool_name} /usr/local/bin/%{_tool_name}
 retval=$?
 
 if test $retval -ne 0; then
-    echo "failed to install $PLATFORM_OWNERSHIP_ENDORSEMENT_TOOL_NAME."
+    echo "ERROR: failed to create symlink for %{_tool_name}." >&2
     exit 6
 fi
 

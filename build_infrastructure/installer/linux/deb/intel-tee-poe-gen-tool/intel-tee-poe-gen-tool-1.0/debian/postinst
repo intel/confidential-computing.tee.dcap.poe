@@ -3,4 +3,13 @@
 # Exit on error
 set -e
 
-ln -s -f @pkg_path@/poe-gen-tool /usr/local/bin/poe-gen-tool
+case "$1" in
+    configure)
+        if [ ! -f @pkg_path@/poe-gen-tool ]; then
+            echo "ERROR: @pkg_path@/poe-gen-tool not found." >&2
+            exit 1
+        fi
+
+        ln -s -f @pkg_path@/poe-gen-tool /usr/local/bin/poe-gen-tool
+        ;;
+esac
