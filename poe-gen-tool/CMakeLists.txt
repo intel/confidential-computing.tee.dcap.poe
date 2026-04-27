@@ -1,16 +1,60 @@
-# Minimum required CMake version (3.13+ for FetchContent and modern features)
-cmake_minimum_required(VERSION 3.13)
+# Minimum required CMake version (3.18+ for FetchContent and modern features)
+cmake_minimum_required(VERSION 3.18)
 
 # Define project name and languages
 project(poe-gen-tool LANGUAGES CXX)
 
 option(BUILD_TESTS "Build poe-gen-tool unit tests" ON)
 
-# Find OpenSSL for cryptographic functionality
-# Request static libraries so the binary is self-contained and does not depend
-# on the target system's OpenSSL shared library version.
-set(OPENSSL_USE_STATIC_LIBS TRUE)
-find_package(OpenSSL REQUIRED)
+include(ExternalProject)
+include(ProcessorCount)
+
+find_program(MAKE_EXECUTABLE NAMES make gmake REQUIRED)
+
+ProcessorCount(OPENSSL_BUILD_JOBS)
+if(NOT OPENSSL_BUILD_JOBS OR OPENSSL_BUILD_JOBS EQUAL 0)
+    set(OPENSSL_BUILD_JOBS 4)
+endif()
+
+set(OPENSSL_VERSION     "3.5.6")
+set(OPENSSL_URL_HASH    "SHA256=deae7c80cba99c4b4f940ecadb3c3338b13cb77418409238e57d7f31f2a3b736")
+set(OPENSSL_INSTALL_DIR "${CMAKE_BINARY_DIR}/openssl-install")
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64")
+    set(OPENSSL_PLATFORM "linux-x86_64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+    set(OPENSSL_PLATFORM "linux-aarch64")
+else()
+    set(OPENSSL_PLATFORM "linux-generic64")
+endif()
+
+ExternalProject_Add(openssl_ext
+    URL             "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+    URL_HASH        ${OPENSSL_URL_HASH}
+    CONFIGURE_COMMAND <SOURCE_DIR>/Configure
+        ${OPENSSL_PLATFORM}
+        no-shared
+        no-tests
+        --prefix=${OPENSSL_INSTALL_DIR}
+        --libdir=lib
+    BUILD_COMMAND    ${MAKE_EXECUTABLE} -j${OPENSSL_BUILD_JOBS} build_sw
+    INSTALL_COMMAND  ${MAKE_EXECUTABLE} install_sw
+    LOG_DOWNLOAD     TRUE
+    LOG_CONFIGURE    TRUE
+    LOG_BUILD        TRUE
+    LOG_INSTALL      TRUE
+)
+
+file(MAKE_DIRECTORY "${OPENSSL_INSTALL_DIR}/include")
+
+add_library(OpenSSL::Crypto STATIC IMPORTED GLOBAL)
+set_target_properties(OpenSSL::Crypto PROPERTIES
+    IMPORTED_LOCATION             "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INSTALL_DIR}/include"
+)
+add_dependencies(OpenSSL::Crypto openssl_ext)
+
+find_package(Threads REQUIRED)
 
 # Set C++ standard to C++20 (required for modern features)
 set(CMAKE_CXX_STANDARD 20)
@@ -93,6 +137,9 @@ target_compile_options(PoeGenToolUtility PRIVATE ${COMMON_FLAGS})
 
 target_link_libraries(PoeGenToolUtility PUBLIC
     OpenSSL::Crypto
+    ${CMAKE_DL_LIBS}
+    Threads::Threads
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0>>:stdc++fs>
 )
 
 set_target_properties(PoeGenToolUtility PROPERTIES

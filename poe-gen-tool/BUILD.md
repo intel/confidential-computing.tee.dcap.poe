@@ -3,7 +3,7 @@ Intel(R) Software Guard Extensions Data Center Attestation Primitives (Intel(R) 
 
 
 ## Prerequisites
-- CMake 3.13 or later
+- CMake 3.18 or later
 - C++20 compatible compiler (GCC 10+ or Clang 10+)
 - OpenSSL development headers (`libssl-dev` on Debian/Ubuntu, `openssl-devel` on RHEL/Fedora)
 
