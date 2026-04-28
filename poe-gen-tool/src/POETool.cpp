@@ -85,7 +85,7 @@ std::istream& operator>>(std::istream& in, Command& command) {
 namespace {
 cxxopts::Options create_root_options() {
     cxxopts::Options options(std::string(VER_PRODUCTNAME_STR),
-                             "Platform Ownership Endorsement Generation Tool");
+                             "Intel(R) Platform Ownership Endorsement Generator");
 
     options.custom_help("[--verbose] <command> [<args>]");
     options.add_options()
@@ -104,7 +104,7 @@ cxxopts::Options create_root_options() {
 // Once usage grows more complex, a full subcommand-like parser can be used.
 cxxopts::Options create_extract_options() {
     cxxopts::Options options(std::string(VER_PRODUCTNAME_STR),
-                             "Platform Ownership Endorsement Generation Tool");
+                             "Intel(R) Platform Ownership Endorsement Generator");
 
     options.custom_help("extract --type <pm|pck_cert|quote> <input_file>");
     options.add_options()
