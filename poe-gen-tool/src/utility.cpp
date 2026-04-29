@@ -85,6 +85,18 @@ bool caseInsensitiveCompare(char a, char b) {
     return tolower(static_cast<unsigned char>(a)) == tolower(static_cast<unsigned char>(b));
 }
 
+std::string toLowercase(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    return s;
+}
+
+std::string extractLowerHexField(std::string_view buf,
+                                 std::size_t hexOffset,
+                                 std::size_t byteLength) {
+    return toLowercase(std::string(buf.substr(hexOffset, byteLength * 2)));
+}
+
 size_t findIgnoreCase(std::string_view str, std::string_view sub) {
     if (sub.empty()) return 0;
     auto it = std::search(str.begin(), str.end(), sub.begin(), sub.end(), caseInsensitiveCompare);
@@ -483,7 +495,8 @@ std::optional<std::string> retrievePIIDAndPRIDsFromPM(std::string_view filename)
 
     std::ostringstream oss;
     oss << "{\n  \"syntaxVersion\" : " << OUTPUT_SYNTAX_VERSION << ",\n  \"platformInstanceId\" : \"";
-    oss << fileBuffer.substr(pos + HEADER_LENGTH * 2, PIID_LENGTH * 2) << "\"," << std::endl;
+    oss << extractLowerHexField(fileBuffer, pos + HEADER_LENGTH * 2, PIID_LENGTH)
+        << "\"," << std::endl;
 
     std::string numberOfPackagesString = fileBuffer.substr(
         pos + PLATFORM_INFO_LENGTH * 2 - PRID_NUMBER_LENGTH * 2, PRID_NUMBER_LENGTH * 2);
@@ -506,17 +519,20 @@ std::optional<std::string> retrievePIIDAndPRIDsFromPM(std::string_view filename)
             return std::nullopt;
         }
         // the first PRID
-        std::string prid = fileBuffer.substr(pos + FIRST_PRID_OFFSET_IN_PM * 2, PRID_LENGTH * 2);
-        oss << "  \"deviceIds\" : [\"" << prid << "\"";
+        oss << "  \"deviceIds\" : [\""
+            << extractLowerHexField(fileBuffer, pos + FIRST_PRID_OFFSET_IN_PM * 2, PRID_LENGTH)
+            << "\"";
         for (std::size_t count = 1; count < numberOfPackages; ++count) {
             if (fileBuffer.length() < pos + PRID_OFFSET_IN_PM * 2 + PRID_LENGTH * 2 * count) {
                 std::cerr << "ERROR: this is one invalid platform manifest, the size is too "
                              "small. \n";
                 return std::nullopt;
             }
-            prid = fileBuffer.substr(pos + PRID_OFFSET_IN_PM * 2 + PRID_LENGTH * 2 * (count - 1),
-                                     PRID_LENGTH * 2);
-            oss << ", \"" << prid << "\"";
+            oss << ", \""
+                << extractLowerHexField(fileBuffer,
+                                        pos + PRID_OFFSET_IN_PM * 2 + PRID_LENGTH * 2 * (count - 1),
+                                        PRID_LENGTH)
+                << "\"";
         }
         oss << "]\n}";
     } else {

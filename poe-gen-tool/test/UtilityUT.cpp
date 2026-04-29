@@ -116,6 +116,8 @@ TEST_F(FileIOTest, PM_ValidSinglePackage_ReturnsExpectedJSON)
 {
     const std::string piid = "AABBCCDDEEFF00112233445566778899";
     const std::string prid = "11223344556677889900AABBCCDDEEFF";
+    const std::string piidLower = "aabbccddeeff00112233445566778899";
+    const std::string pridLower = "11223344556677889900aabbccddeeff";
     const auto path = filePath("valid.hex");
     writeFile(path, buildMinimalValidPM(piid, prid));
 
@@ -124,8 +126,10 @@ TEST_F(FileIOTest, PM_ValidSinglePackage_ReturnsExpectedJSON)
     EXPECT_NE(result->find("\"syntaxVersion\" : 1"), std::string::npos);
     EXPECT_NE(result->find("platformInstanceId"), std::string::npos);
     EXPECT_NE(result->find("deviceIds"), std::string::npos);
-    EXPECT_NE(result->find(piid), std::string::npos);
-    EXPECT_NE(result->find(prid), std::string::npos);
+    EXPECT_NE(result->find(piidLower), std::string::npos);
+    EXPECT_NE(result->find(pridLower), std::string::npos);
+    EXPECT_EQ(result->find(piid), std::string::npos);
+    EXPECT_EQ(result->find(prid), std::string::npos);
 }
 
 TEST_F(FileIOTest, PM_NonHexVersionField_ReturnsNullopt)
