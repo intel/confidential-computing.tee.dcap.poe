@@ -48,6 +48,8 @@ constexpr std::size_t QE_VENDOR_ID_LENGTH = 16;
 
 constexpr size_t MAX_ALLOWED_FILE_SIZE = 20 * 1024 * 1024;  // 20 MB
 
+constexpr int OUTPUT_SYNTAX_VERSION = 1;
+
 constexpr std::string_view platform_manifest_guid = "178E874B49E44AA599BB3057170925B4";
 constexpr std::string_view platform_info_guid = "84947ac684404189902a7e76cd658926";
 constexpr std::string_view pairing_receipt_guid = "b40bc4671ab54066b7f960b6504bc18b";
@@ -287,7 +289,7 @@ std::optional<std::string> getExtensionByOIDString(std::string_view pckCert,
             }
 
             std::ostringstream oss;
-            oss << "{\"PlatformInstanceID\" : \"" << hex_str << "\"}";
+            oss << "{\"syntaxVersion\" : " << OUTPUT_SYNTAX_VERSION << ", \"platformInstanceId\" : \"" << hex_str << "\"}";
             return oss.str();
         }
     }  // finished the iteration of sgx extensions
@@ -480,7 +482,7 @@ std::optional<std::string> retrievePIIDAndPRIDsFromPM(std::string_view filename)
     }
 
     std::ostringstream oss;
-    oss << "{\n  \"PlatformInstanceID\" : \"";
+    oss << "{\n  \"syntaxVersion\" : " << OUTPUT_SYNTAX_VERSION << ",\n  \"platformInstanceId\" : \"";
     oss << fileBuffer.substr(pos + HEADER_LENGTH * 2, PIID_LENGTH * 2) << "\"," << std::endl;
 
     std::string numberOfPackagesString = fileBuffer.substr(
@@ -505,7 +507,7 @@ std::optional<std::string> retrievePIIDAndPRIDsFromPM(std::string_view filename)
         }
         // the first PRID
         std::string prid = fileBuffer.substr(pos + FIRST_PRID_OFFSET_IN_PM * 2, PRID_LENGTH * 2);
-        oss << "  \"DeviceIDs\" : [\"" << prid << "\"";
+        oss << "  \"deviceIds\" : [\"" << prid << "\"";
         for (std::size_t count = 1; count < numberOfPackages; ++count) {
             if (fileBuffer.length() < pos + PRID_OFFSET_IN_PM * 2 + PRID_LENGTH * 2 * count) {
                 std::cerr << "ERROR: this is one invalid platform manifest, the size is too "

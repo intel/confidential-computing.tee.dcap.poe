@@ -33,10 +33,12 @@ fi
 cp "${ROOT_DIR}/poe-gen-tool/build/bin/poe-gen-tool" "${rel_dir_name}"
 cp "${ROOT_DIR}/poe-gen-tool/README.md" "${rel_dir_name}"
 cp "${ROOT_DIR}/License.txt" "${rel_dir_name}"
+mkdir -p "${rel_dir_name}/schemas"
+cp "${ROOT_DIR}/poe-gen-tool/schemas/extract-output.schema.json" "${rel_dir_name}/schemas"
 
 # Set restrictive permissions: executable 0755, docs 0644
 chmod 0755 "${rel_dir_name}/poe-gen-tool"
-chmod 0644 "${rel_dir_name}/README.md" "${rel_dir_name}/License.txt"
+chmod 0644 "${rel_dir_name}/README.md" "${rel_dir_name}/License.txt" "${rel_dir_name}/schemas/extract-output.schema.json"
 
 tar cvpzf "${rel_dir_name}.tar.gz" "${rel_dir_name}" --remove-files
 rmdir "${rel_dir_name}" 2>/dev/null || true

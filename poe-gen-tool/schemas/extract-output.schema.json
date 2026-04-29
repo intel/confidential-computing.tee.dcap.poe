@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/intel/confidential-computing.tee.dcap.poe/poe-gen-tool/schemas/extract-output.schema.json",
+  "title": "Intel(R) Platform Ownership Endorsement Generator - extract command Output",
+  "description": "JSON output produced by the Intel(R) Platform Ownership Endorsement Generator (poe-gen-tool) 'extract' command. The extract command reads a platform manifest, PCK certificate, or quote file and outputs platform identity information needed for the Platform Ownership Endorsement (POE) provisioning flow.",
+  "type": "object",
+  "required": [
+    "syntaxVersion",
+    "platformInstanceId"
+  ],
+  "properties": {
+    "syntaxVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version of this JSON output format. This version is incremented only for breaking changes (e.g., removing or renaming fields, changing a field's type or semantics). Additive changes such as new optional fields do not require a version bump — consumers must ignore fields they do not recognize."
+    },
+    "platformInstanceId": {
+      "type": "string",
+      "description": "The Platform Instance ID (PIID) that uniquely identifies an Intel SGX or Intel TDX platform. This is a 16-byte value encoded as a lowercase hexadecimal string (32 characters). The PIID is extracted from the SGX Extensions of a PCK Certificate (OID 1.2.840.113741.1.13.1.6) or from a Platform Manifest.",
+      "pattern": "^[0-9a-fA-F]{32}$",
+      "minLength": 32,
+      "maxLength": 32,
+      "examples": [
+        "0a0b0c0d0e0f101112131415161718ff"
+      ]
+    },
+    "deviceIds": {
+      "type": "array",
+      "description": "An array of Processor Registration IDs (PRIDs), also known as Device IDs. Each PRID uniquely identifies a processor package on the platform. This field is only present when extracting from a Platform Manifest. The number of entries in the array corresponds to the number of processor packages reported in the manifest. In practice, current platforms commonly report up to 8 processor packages; the schema allows up to 1024 entries for future platforms and forward compatibility.",
+      "items": {
+        "type": "string",
+        "description": "A single Processor Registration ID (PRID). This is a 16-byte value encoded as a hexadecimal string (32 characters).",
+        "pattern": "^[0-9a-fA-F]{32}$",
+        "minLength": 32,
+        "maxLength": 32,
+        "examples": [
+          "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 1024
+    }
+  },
+  "additionalProperties": true,
+  "oneOf": [
+    {
+      "title": "Platform Manifest Extraction",
+      "description": "Information was extracted from a Platform Manifest. Result contains the Platform Instance ID (PIID) and one or more Device IDs (PRIDs).",
+      "required": [
+        "syntaxVersion",
+        "platformInstanceId",
+        "deviceIds"
+      ]
+    },
+    {
+      "title": "PCK Certificate or Quote Extraction",
+      "description": "Information was extracted from a PCK Certificate or an SGX/TD Quote file. Result contains only the Platform Instance ID (PIID).",
+      "required": [
+        "syntaxVersion",
+        "platformInstanceId"
+      ],
+      "not": {
+        "required": [
+          "deviceIds"
+        ]
+      }
+    }
+  ],
+  "examples": [
+    {
+      "syntaxVersion": 1,
+      "platformInstanceId": "0a0b0c0d0e0f101112131415161718ff"
+    },
+    {
+      "syntaxVersion": 1,
+      "platformInstanceId": "0a0b0c0d0e0f101112131415161718ff",
+      "deviceIds": [
+        "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+        "b2c3d4e5f6071829304a5b6c7d8e9fa0"
+      ]
+    }
+  ]
+}

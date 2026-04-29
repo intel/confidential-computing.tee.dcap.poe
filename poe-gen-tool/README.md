@@ -69,3 +69,59 @@ Global options:
 Notes:
   At the same time, you can only provide one and only one type for these three types: pm, pck_cert, quote.
 ```
+
+
+## Output Format
+
+The `extract` command outputs JSON to stdout.
+The output includes a `syntaxVersion` field (currently `1`) that identifies the format version.
+Consumers should check this value before parsing to ensure compatibility with the expected format.
+
+A formal JSON Schema is provided at [`schemas/extract-output.schema.json`](schemas/extract-output.schema.json).
+You can use it to validate output programmatically, for example with any JSON Schema 2020-12 compliant validator.
+
+### Parsing guidance
+
+- **Always check `syntaxVersion` first.**
+  If the value is higher than what your code supports, handle it gracefully (e.g., warn and skip, or fail with a clear message).
+
+- **Ignore unknown fields.**
+  The schema permits additional properties.
+  Future tool releases may add new optional fields without bumping the syntax version.
+  Consumers must accept and ignore fields they do not recognize — use field-presence checks (e.g., `json.contains("fieldName")`) rather than version comparisons to discover optional data.
+
+- **When `syntaxVersion` increments:**
+  Only breaking changes cause a version bump — for example, removing a field, renaming a field, or changing a field's type or semantics.
+  As long as `syntaxVersion` remains at the value your code was written for, your parser will continue to work even if new fields appear in the output.
+
+- **Required fields by extraction type:**
+
+  | Field               | `--type pm` | `--type pck_cert` | `--type quote` |
+  |---------------------|:-----------:|:-----------------:|:--------------:|
+  | `syntaxVersion`     | present     | present           | present        |
+  | `platformInstanceId`| present     | present           | present        |
+  | `deviceIds`         | present     | absent            | absent         |
+
+### Example outputs
+
+Result for extraction from PCK Certificate or SGX/TD Quote:
+
+```json
+{
+  "syntaxVersion": 1,
+  "platformInstanceId": "0a0b0c0d0e0f101112131415161718ff"
+}
+```
+
+Result for extraction from Platform Manifest:
+
+```json
+{
+  "syntaxVersion": 1,
+  "platformInstanceId": "0a0b0c0d0e0f101112131415161718ff",
+  "deviceIds": [
+    "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+    "b2c3d4e5f6071829304a5b6c7d8e9fa0"
+  ]
+}
+```
