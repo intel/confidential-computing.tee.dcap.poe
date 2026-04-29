@@ -22,8 +22,8 @@ source ${SCRIPT_DIR}/installConfig
 # Fetch the gen_source script
 cp ${LINUX_INSTALLER_COMMON_DIR}/gen_source/gen_source.py ${SCRIPT_DIR}
 # Copy the files according to the BOM
-python ${SCRIPT_DIR}/gen_source.py --bom=BOMs/platform-ownership-endorsement-tool.txt --installdir=pkgroot/intel-tee-poe-gen-tool
-python ${SCRIPT_DIR}/gen_source.py --bom=BOMs/platform-ownership-endorsement-tool-package.txt --cleanup=false
+python3 ${SCRIPT_DIR}/gen_source.py --bom=BOMs/platform-ownership-endorsement-tool.txt --installdir=pkgroot/intel-tee-poe-gen-tool
+python3 ${SCRIPT_DIR}/gen_source.py --bom=BOMs/platform-ownership-endorsement-tool-package.txt --cleanup=false
 
 
 # Create the tarball

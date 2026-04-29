@@ -1,0 +1,106 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ "main*" ]
+    paths:
+      - '**'
+      - '!**.txt'
+      - '!**.md'
+      - '!.github/**'
+      - '.github/workflows/codeql.yml'
+      - '.github/codeql/**'
+  pull_request:
+    branches: [ "main*" ]
+    paths:
+      - '**'
+      - '!**.txt'
+      - '!**.md'
+      - '!.github/**'
+      - '.github/workflows/codeql.yml'
+      - '.github/codeql/**'
+  schedule:
+    - cron: '35 2 * * 0'
+
+# Declare default permissions as read only.
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ vars.RUNNER_CODE_QL || 'ubuntu-24.04' }}
+    timeout-minutes: 360
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+      pull-requests: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: c-cpp
+          build-mode: manual
+          sarif-name: cpp
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        submodules: recursive
+        token: ${{ secrets.ALL_REPO_CONTENTS_READ_PAT || github.token }}
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@7fc6561ed893d15cec696e062df840b21db27eb0  # v4.35.2
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+        config-file: ./.github/codeql/codeql-config.yml
+
+    - name: Build
+      if: matrix.build-mode == 'manual' && matrix.language == 'c-cpp'
+      shell: bash
+      run: |
+        set -xeuo pipefail
+
+        sudo -E apt-get update
+        sudo -E apt-get install -y --no-install-recommends \
+          build-essential \
+          cmake \
+          libssl-dev
+
+        make RELEASE=1
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@7fc6561ed893d15cec696e062df840b21db27eb0  # v4.35.2
+      with:
+        category: "/language:${{matrix.language}}"
+        output: sarif-results
+        upload: ${{ vars.DO_NOT_UPLOAD_SARIF_TO_GITHUB == '1' && 'never' || 'failure-only' }}
+
+    - name: Filter SARIF
+      uses: advanced-security/filter-sarif@2da736ff05ef065cb2894ac6892e47b5eac2c3c0  # v1.1
+      with:
+        patterns: |
+          -build_infrastructure/**/*
+        input: sarif-results/${{ matrix.sarif-name }}.sarif
+        output: sarif-results/${{ matrix.sarif-name }}.sarif
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+      if: ${{ vars.PUBLISH_STANDALONE_SARIF_RESULTS == '1' }}
+      with:
+        name: codeQL_sarif_results_${{ matrix.language }}
+        path: sarif-results/**
+        retention-days: 1
+
+    - name: Upload SARIF to GitHub Code Scanning
+      if: ${{ vars.DO_NOT_UPLOAD_SARIF_TO_GITHUB != '1' }}
+      uses: github/codeql-action/upload-sarif@7fc6561ed893d15cec696e062df840b21db27eb0  # v4.35.2
+      with:
+        sarif_file: sarif-results/${{ matrix.sarif-name }}.sarif
